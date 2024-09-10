@@ -6,8 +6,8 @@
 
 ## Function
 1. Check Connection Status
-2. Visualize Status with two-state Button
-3. OpenPort, ClosePort
+2. Visualize Status with two-state Button (Currently COM6 Only)
+3. 6 Ports Supported (Open Close)
 
 ## Control
 1. Button ( Changes ORANGE <-> Gray )
