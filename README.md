@@ -62,6 +62,7 @@ set Timeout 5 seconds
 
 My co-worker wanted to make sure the data is received well,  
 and at the same time update GUI whether the data is being received.  
+and maybe no need for Timer to call method  
 
 ```
 Add Extra Method
