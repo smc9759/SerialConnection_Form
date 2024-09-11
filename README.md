@@ -21,8 +21,7 @@ If you're using ONE port, then it might be :
 
 In circumstances where you need MULTIPLE ports :  
 
-```
-csharp
+```csharp
 SerialPort serialport1  
 SerialPort serialport2  
 SerialPort serialport3  
