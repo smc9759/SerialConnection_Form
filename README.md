@@ -50,19 +50,31 @@ Furthermore, when it comes to checking connection status of each 6 Active Ports,
 There are at many ways to achieve  
 
 ```
-Do Serial Communication
-Receive Data
-Store Data in SQLiteDB
-Get SQLiteDB's last data saved time (to secs)
+CheckConnection()
+{
+    DateTime CurrentTime = DateTime.Now;
+foreach (var SQLiteData in SQLiteDatas)
+    {
+        string COM_Number = SQLiteData.Key;
+        DateTime TimeInformation_DB = SQLiteData.Value;
+        if ((CurrentTime - TimeInformation_DB).TotalSeconds > timeout)
+        {
+            //GUI Update - Connection Lost
+        }  
+
+Sequence Flow
+Get SQLiteDB's last data saved time Information  
+
 Get Current Time
 Compare Two  
 if Current Time is larger than SqLite, think of it as connection lost.
 set Timeout 5 seconds
 ```
 
-My co-worker wanted to make sure the data is received well,  
-and at the same time update GUI whether the data is being received.  
-and maybe no need for Timer to call method  
+Consider Two as Same  
+Connected = Data Receiving every second  
+Used in Program which saves Serial Communication Data in SQLiteDB  
+
 
 ```
 Add Extra Method
@@ -73,5 +85,10 @@ not bad, though method is called by Timer every second to check connection statu
 
 ```
 Using Dictionary
+        private Dictionary<string, SerialPort> _serialPort;
+ 
 ```
-I think this is best.  
+There is no need to bind Connection status and Serial Port Instance together.  
+Because there is already IsOpen boolean property in SerialPort Instance  
+
+
