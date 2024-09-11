@@ -13,7 +13,7 @@ namespace SerialComm
     public class SerialCommunication
     {
         private ConcurrentDictionary<string, SerialPort> activePorts = new ConcurrentDictionary<string, SerialPort>();
-
+        private readonly DatabaseManager _databaseManager;
         // 6개의 큐를 사용
         private ConcurrentQueue<string> queueForS001 = new ConcurrentQueue<string>();
         private ConcurrentQueue<string> queueForS002 = new ConcurrentQueue<string>();
@@ -22,6 +22,10 @@ namespace SerialComm
         private ConcurrentQueue<string> queueForS005 = new ConcurrentQueue<string>();
         private ConcurrentQueue<string> queueForS006 = new ConcurrentQueue<string>();
 
+        public SerialCommunication()
+        {
+            _databaseManager = new DatabaseManager();
+        }
 
         // 로그 메시지를 비동기로 파일에 기록하는 메서드
 
@@ -53,6 +57,7 @@ namespace SerialComm
             }
             catch (Exception ex)
             {
+                await LogMessageAsync(ex.Message);
                 // 파일에 로그 기록이 실패한 경우, 기본적으로 예외를 무시
                 // 필요에 따라 다른 예외 처리 로직을 추가할 수 있습니다.
             }
@@ -228,9 +233,9 @@ namespace SerialComm
                 {
                     try
                     {
-                        string dbFilePath = CreateFolder(prefix);
-                        await Add_DBTable(dbFilePath);
-                        await Add_Data_DB(dbFilePath, prefix, data);
+                        string dbFilePath = _databaseManager.CreateFolder(prefix);
+                        await _databaseManager.AddDBTableAsync(dbFilePath);
+                        await _databaseManager.AddDataToDBAsync(dbFilePath, prefix, data);
                     }
                     catch (Exception ex)
                     {
