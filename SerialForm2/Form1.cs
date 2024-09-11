@@ -25,51 +25,37 @@ namespace SerialForm2
             _statusTimer = new Timer();
             _statusTimer.Interval = 1000; // Check every second
             _statusTimer.Tick += OnStatusTimerTick;
+
+            StartBackgroundTasks();
         }
 
-        private void btnOpenPort_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                _serialComm.OpenPort();
-                ChangeButtonColor(_serialComm.IsPortOpen); // Update button color
-                _statusTimer.Start(); // Start the timer to check port status
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message);
-            }
-        }
 
-        private void btnClosePort_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                _serialComm.ClosePort();
-                ChangeButtonColor(_serialComm.IsPortOpen); // Update button color
-                _statusTimer.Stop(); // Stop the timer
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message);
-            }
-        }
         private void OnStatusTimerTick(object sender, EventArgs e)
         {
             // Timer Tick event handler
-            // Update button color based on the port status
-            ChangeButtonColor(_serialComm.IsPortOpen);
+
         }
 
-        private void ChangeButtonColor(bool isOpen)
+
+        //        btn_isportopen.StateCommon.Back.Color1 = Color.LightGray; // Default color
+        private static async void StartBackgroundTasks()
         {
-            if (isOpen)
+            // 비동기 시리얼 통신 시작
+            await StartSerialCommunicationAsync();
+        }
+
+        // 비동기 시리얼 통신 메서드
+        private static async Task StartSerialCommunicationAsync()
+        {
+            try
             {
-                btn_isportopen.StateCommon.Back.Color1 = Color.Orange;
+                // 시리얼 통신 인스턴스 생성 및 비동기 시작
+                SerialCommunication serialCommunication = new SerialCommunication();
+                await serialCommunication.StartAsync(); // 시리얼 통신 비동기 작업 시작
             }
-            else
+            catch (Exception ex)
             {
-                btn_isportopen.StateCommon.Back.Color1 = Color.LightGray; // Default color
+                MessageBox.Show($"Error in serial communication: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
