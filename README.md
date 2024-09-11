@@ -22,18 +22,17 @@ If you're using ONE port, then it might be :
 In circumstances where you need MULTIPLE ports :  
 
 ```csharp
-SerialPort serialport1  
-SerialPort serialport2  
-SerialPort serialport3  
-SerialPort serialport4  
-SerialPort serialport5  
-...  
+SerialPort serialport1;  
+SerialPort serialport2;  
+SerialPort serialport3;  
+SerialPort serialport4;  
+SerialPort serialport5;  
 ```
 
 Upper code has multiple Instances of Serialport. 
 Its beginner c++ style, need to be modified.  
 
-```
+```csharp
 List<SerialPort> _serialport = new List<SerialPort>;  
 var portNames = new List<string> { "COM1", "COM2", "COM3", "COM4", "COM5", "COM6" };  
 var baudRate = 115200;              
@@ -49,7 +48,7 @@ Foreach is like a python. Its a good tool.
 Furthermore, when it comes to checking connection status of each 6 Active Ports,  
 There are at many ways to achieve  
 
-```
+```csharp
 CheckConnection()
 {
     DateTime CurrentTime = DateTime.Now;
