@@ -2,7 +2,6 @@
 using System;
 using System.Data.SQLite;
 using System.IO;
-using System.Threading.Tasks;
 
 namespace SerialComm
 {
@@ -18,18 +17,19 @@ namespace SerialComm
             string folderPath = Path.Combine(Variable.baseFolderPath, $"SVMU_{year}", $"SVMU_{year}{month}", $"SVMU_{year}{month}{day}");
             string dbFilePath = Path.Combine(folderPath, $"SVMU_{year}{month}{day}_{hour}_{prefix}.db");
 
+            // Ensure the directory exists
             Directory.CreateDirectory(folderPath);
 
             return dbFilePath;
         }
 
-        public async Task AddDBTableAsync(string dbFilePath)
+        public void AddDBTable(string dbFilePath)
         {
             string connectionString = $"Data Source={dbFilePath};Version=3;";
 
             using (var connection = new SQLiteConnection(connectionString))
             {
-                await connection.OpenAsync();
+                connection.Open();
 
                 string createTableQuery = @"
                 CREATE TABLE IF NOT EXISTS DataLog (
@@ -41,18 +41,18 @@ namespace SerialComm
 
                 using (var command = new SQLiteCommand(createTableQuery, connection))
                 {
-                    await command.ExecuteNonQueryAsync();
+                    command.ExecuteNonQuery();
                 }
             }
         }
 
-        public async Task AddDataToDBAsync(string dbFilePath, string prefix, string data)
+        public void AddDataToDB(string dbFilePath, string prefix, string data)
         {
             string connectionString = $"Data Source={dbFilePath};Version=3;";
 
             using (var connection = new SQLiteConnection(connectionString))
             {
-                await connection.OpenAsync();
+                connection.Open();
                 string currentTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
 
                 string insertQuery = @"
@@ -65,7 +65,7 @@ namespace SerialComm
                     command.Parameters.AddWithValue("@Data", data);
                     command.Parameters.AddWithValue("@Timestamp", currentTime);
 
-                    await command.ExecuteNonQueryAsync();
+                    command.ExecuteNonQuery();
                 }
             }
         }

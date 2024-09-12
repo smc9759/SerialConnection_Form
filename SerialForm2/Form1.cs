@@ -38,46 +38,36 @@ namespace SerialForm2
 
             StartBackgroundTasks();
         }
-        private async void _statusTimer_Tick(object sender, EventArgs e)
+        private void _statusTimer_Tick(object sender, EventArgs e)
         {
             // Timer Tick event handler
             DateTime now = DateTime.Now;
             labelTime.Text = now.ToString("yyyy-MM-dd HH:mm:ss");
 
-            // 1초마다 최신 데이터베이스 파일을 체크하고 차트 업데이트
-            await CheckForNewDbFilesAsync();
+            // Check for new database files and update chart
+            CheckForNewDbFiles();
 
-
-            // 타임아웃 체크
+            // Check timeouts
             CheckTimeouts();
         }
-
-
-
-        //        btn_isportopen.StateCommon.Back.Color1 = Color.LightGray; // Default color
-        private static async void StartBackgroundTasks()
+        private static void StartBackgroundTasks()
         {
-            // 비동기 시리얼 통신 시작
-            await StartSerialCommunicationAsync();
+            // Start serial communication synchronously
+            StartSerialCommunication();
         }
-
-        // 비동기 시리얼 통신 메서드
-        private static async Task StartSerialCommunicationAsync()
+        private static void StartSerialCommunication()
         {
             try
             {
-                // 시리얼 통신 인스턴스 생성 및 비동기 시작
+                // Create a serial communication instance and start synchronously
                 SerialCommunication serialCommunication = new SerialCommunication();
-                await serialCommunication.StartAsync(); // 시리얼 통신 비동기 작업 시작
+                serialCommunication.Start(); // Start serial communication
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Error in serial communication: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
-
-
-        /// <summary>
         /// /////////////////////////////////////////////////////////////////////////
         /// </summary>
         private void CheckTimeouts()
@@ -100,12 +90,6 @@ namespace SerialForm2
                 }
             }
         }
-
-        /// <summary>
-        /// 버튼 색깔 
-        /// </summary>
-        /// <param name="seriesName"></param>
-        /// <param name="color"></param>
 
 
         private void SetButtonColor(string seriesName, Color color)
@@ -143,7 +127,6 @@ namespace SerialForm2
             }
         }
 
-
         private void InitializeChart()
         {
             try
@@ -174,6 +157,7 @@ namespace SerialForm2
             }
             catch (Exception ex)
             {
+                Console.WriteLine(ex.Message);
                 //string str_Msg = $"{MethodBase.GetCurrentMethod().Name} - {ex.Message}";
                 //Variable.WriteLog(str_Msg);
             }
@@ -188,65 +172,50 @@ namespace SerialForm2
             }
         }
 
-
         /// <summary>
         /// DB 파일 확인 
         /// </summary>
         /// <returns></returns>
 
-        private async Task CheckForNewDbFilesAsync()
+        private void CheckForNewDbFiles()
         {
             string latestFolderPath = FindLatestFolderPath(Variable.baseFolderPath);
             if (string.IsNullOrEmpty(latestFolderPath))
             {
-                return; // 최신 폴더를 찾지 못한 경우
+                return; // No folder found
             }
 
             string[] seriesNames = { "S_001", "S_002", "S_003", "S_004", "S_005", "S_006" };
 
-            // 현재 날짜와 시간을 사용하여 파일 이름을 동적으로 생성
             string year = DateTime.Now.ToString("yyyy");
             string month = DateTime.Now.ToString("MM");
             string day = DateTime.Now.ToString("dd");
             string hour = DateTime.Now.ToString("HH");
 
-            // baseFolderPath를 사용하여 동적으로 경로 설정
             string folderPath = Path.Combine(Variable.baseFolderPath, $"SVMU_{year}", $"SVMU_{year}{month}", $"SVMU_{year}{month}{day}");
 
-            for (int j = 0; j < seriesNames.Length; j++)
+            foreach (string seriesName in seriesNames)
             {
-                string seriesName = seriesNames[j];
                 string dbFilePath = Path.Combine(folderPath, $"SVMU_{year}{month}{day}_{hour}_{seriesName}.db");
-                /*
-                if (!File.Exists(dbFilePath) || loadedFiles.Contains(dbFilePath))
-                {
-                    // 파일이 없거나 이미 로드된 파일이면 건너뜀
-                    continue;
-                }
 
-                await LoadDataFromFileAsync(dbFilePath, seriesName);
-                loadedFiles.Add(dbFilePath); // 로드된 파일로 추가
-                */
                 if (!File.Exists(dbFilePath))
                 {
                     continue;
                 }
-                // 파일 변경 감지: 기존 파일 경로와 다르면 초기화
+
                 if (!lastFilePaths.ContainsKey(seriesName) || lastFilePaths[seriesName] != dbFilePath)
                 {
-                    // 새로운 파일이 로드되었을 때 데이터 초기화
+                    // Initialize when a new file is loaded
                     lastReadRowIds[seriesName] = 0;
-                    chart1.Series[seriesName].Points.Clear(); // 그래프 초기화
+                    chart1.Series[seriesName].Points.Clear(); // Clear chart
 
-                    // 새로운 파일 경로 업데이트
                     lastFilePaths[seriesName] = dbFilePath;
                 }
-                //MessageBox.Show($"Tlqkf {dbFilePath}");
-                // 데이터 파일 로드
-                await LoadDataFromFileAsync(dbFilePath, seriesName);
+
+                // Load data from file
+                LoadDataFromFile(dbFilePath, seriesName);
             }
         }
-
 
         private string FindLatestFolderPath(string baseFolder)
         {
@@ -291,49 +260,46 @@ namespace SerialForm2
             }
             catch (Exception ex)
             {
+                Console.WriteLine(ex.Message);
                 //MessageBox.Show($"Error finding latest folder: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return null;
             }
         }
 
         // 주어진 데이터베이스 파일에서 데이터를 로드하고 차트를 업데이트하는 비동기 메서드
-        private async Task LoadDataFromFileAsync(string dbFilePath, string seriesName)
+        private void LoadDataFromFile(string dbFilePath, string seriesName)
         {
             try
             {
-
                 string year = DateTime.Now.ToString("yyyy");
                 string month = DateTime.Now.ToString("MM");
                 string day = DateTime.Now.ToString("dd");
                 string hour = DateTime.Now.ToString("HH");
 
-                // baseFolderPath를 사용하여 동적으로 경로 설정
                 string folderPath = Path.Combine(Variable.baseFolderPath, $"SVMU_{year}", $"SVMU_{year}{month}", $"SVMU_{year}{month}{day}");
-
 
                 string connectionString = $"Data Source={dbFilePath};Version=3;";
                 string query = "SELECT ROWID, Data FROM DataLog ORDER BY ROWID DESC LIMIT 1";
 
-                using (SQLiteConnection connection = new SQLiteConnection(connectionString))
+                using (var connection = new SQLiteConnection(connectionString))
                 {
-                    await connection.OpenAsync();
+                    connection.Open();
 
-                    using (SQLiteCommand command = new SQLiteCommand(query, connection))
+                    using (var command = new SQLiteCommand(query, connection))
                     {
-                        using (var reader = (SQLiteDataReader)await command.ExecuteReaderAsync())
+                        using (var reader = command.ExecuteReader())
                         {
-                            if (await reader.ReadAsync())
+                            if (reader.Read())
                             {
                                 long rowId = reader.GetInt64(0);
                                 string str_SensorData = reader.GetString(1);
                                 string[] stringValues = str_SensorData.Split(',');
-                                // ROWID 초기화 조건 추가
-                                // 새로운 파일이면 lastReadRowIds 초기화 상태에서 시작
+
                                 if (!lastReadRowIds.ContainsKey(seriesName) || rowId > lastReadRowIds[seriesName])
                                 {
-                                    lastReadRowIds[seriesName] = rowId; // 마지막으로 읽은 ROWID 갱신
+                                    lastReadRowIds[seriesName] = rowId; // Update last read ROWID
 
-                                    List<double> values = new List<double>();
+                                    var values = new List<double>();
                                     foreach (var stringValue in stringValues)
                                     {
                                         if (double.TryParse(stringValue, out double parsedValue))
@@ -348,34 +314,33 @@ namespace SerialForm2
                                         chart1.Series[seriesName].ChartType = SeriesChartType.Line;
                                     }
 
-                                    chart1.Series[seriesName].Points.Clear(); // 그래프 초기화
+                                    chart1.Series[seriesName].Points.Clear(); // Clear chart
                                     for (int i = 0; i < values.Count; i++)
                                     {
                                         chart1.Series[seriesName].Points.AddXY(i + 1, values[i]);
                                     }
                                     chart1.Series[seriesName].Enabled = true;
-                                    lastReceivedTimes[seriesName] = DateTime.Now; // 마지막 수신 시간 갱신
+                                    lastReceivedTimes[seriesName] = DateTime.Now; // Update last received time
 
-                                    // 데이터 수신 시 미수신 카운트를 초기화
+                                    // Reset no data count
                                     if (noDataCount.ContainsKey(seriesName))
                                     {
                                         noDataCount[seriesName] = 0;
                                     }
                                 }
-
                                 else
                                 {
-                                    // 데이터가 수신되지 않은 경우
+                                    // Increment no data count if no data received
                                     if (!noDataCount.ContainsKey(seriesName))
                                     {
                                         noDataCount[seriesName] = 0;
                                     }
 
-                                    noDataCount[seriesName]++; // 미수신 카운트 증가
+                                    noDataCount[seriesName]++; // Increase no data count
 
                                     if (noDataCount[seriesName] > 2)
                                     {
-                                        // 2회 이상 데이터가 수신되지 않았을 때 시리즈 비활성화
+                                        // Deactivate series if no data received more than 2 times
                                         if (chart1.Series.IndexOf(seriesName) != -1)
                                         {
                                             chart1.Series[seriesName].Enabled = false;

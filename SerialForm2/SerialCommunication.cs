@@ -6,7 +6,7 @@ using System.IO;
 using System.IO.Ports;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
+using System.Threading;
 
 namespace SerialComm
 {
@@ -27,10 +27,7 @@ namespace SerialComm
             _databaseManager = new DatabaseManager();
         }
 
-        // 로그 메시지를 비동기로 파일에 기록하는 메서드
-
-        // 로그 메시지를 비동기로 파일에 기록하는 메서드
-        private async Task LogMessageAsync(string message)
+        private void LogMessage(string message)
         {
             try
             {
@@ -49,35 +46,48 @@ namespace SerialComm
                 {
                     Directory.CreateDirectory(logDirectoryPath);
                 }
-                // 로그 메시지를 비동기적으로 파일에 추가
+                // 로그 메시지를 동기적으로 파일에 추가
                 using (StreamWriter writer = new StreamWriter(fullLogFilePath, append: true))
                 {
-                    await writer.WriteLineAsync($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - {message}");
+                    writer.WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - {message}");
                 }
             }
             catch (Exception ex)
             {
-                await LogMessageAsync(ex.Message);
-                // 파일에 로그 기록이 실패한 경우, 기본적으로 예외를 무시
-                // 필요에 따라 다른 예외 처리 로직을 추가할 수 있습니다.
+                // 예외 발생 시 기본적으로 무시하지만, 필요 시 다른 처리 가능
+                Console.WriteLine($"로그 기록 실패: {ex.Message}");
             }
         }
 
-        public async Task StartAsync()
+        public void Start()
         {
             try
             {
-                await LogMessageAsync("시리얼 포트 모니터링을 시작합니다. 종료하려면 [q]를 누르세요.");
+                LogMessage("시리얼 포트 모니터링을 시작합니다. 종료하려면 [q]를 누르세요.");
 
-                var monitorTask = MonitorSerialPortsAsync();
-                var processS001Task = ProcessQueueAsync(queueForS001, "S_001");
-                var processS002Task = ProcessQueueAsync(queueForS002, "S_002");
-                var processS003Task = ProcessQueueAsync(queueForS003, "S_003");
-                var processS004Task = ProcessQueueAsync(queueForS004, "S_004");
-                var processS005Task = ProcessQueueAsync(queueForS005, "S_005");
-                var processS006Task = ProcessQueueAsync(queueForS006, "S_006");
+                var monitorThread = new Thread(() => MonitorSerialPorts());
+                var processS001Thread = new Thread(() => ProcessQueue(queueForS001, "S_001"));
+                var processS002Thread = new Thread(() => ProcessQueue(queueForS002, "S_002"));
+                var processS003Thread = new Thread(() => ProcessQueue(queueForS003, "S_003"));
+                var processS004Thread = new Thread(() => ProcessQueue(queueForS004, "S_004"));
+                var processS005Thread = new Thread(() => ProcessQueue(queueForS005, "S_005"));
+                var processS006Thread = new Thread(() => ProcessQueue(queueForS006, "S_006"));
 
+                monitorThread.Start();
+                processS001Thread.Start();
+                processS002Thread.Start();
+                processS003Thread.Start();
+                processS004Thread.Start();
+                processS005Thread.Start();
+                processS006Thread.Start();
 
+                monitorThread.Join();
+                processS001Thread.Join();
+                processS002Thread.Join();
+                processS003Thread.Join();
+                processS004Thread.Join();
+                processS005Thread.Join();
+                processS006Thread.Join();
 
                 // 모든 포트를 닫음
                 foreach (var port in activePorts.Values)
@@ -88,18 +98,15 @@ namespace SerialComm
                     }
                     catch (Exception ex)
                     {
-                        await LogMessageAsync($"포트 {port.PortName} 닫는 중 오류 발생: {ex.Message}");
+                        LogMessage($"포트 {port.PortName} 닫는 중 오류 발생: {ex.Message}");
                     }
                 }
 
-                await LogMessageAsync("포트 모니터링이 종료되었습니다.");
-
-                // 모든 작업 완료 대기
-                await Task.WhenAll(monitorTask, processS001Task, processS002Task, processS003Task, processS004Task, processS005Task, processS006Task);
+                LogMessage("포트 모니터링이 종료되었습니다.");
             }
             catch (Exception ex)
             {
-                await LogMessageAsync($"시리얼 통신 중 예외 발생: {ex.Message}");
+                LogMessage($"시리얼 통신 중 예외 발생: {ex.Message}");
             }
             finally
             {
@@ -114,7 +121,7 @@ namespace SerialComm
                         }
                         catch (Exception ex)
                         {
-                            await LogMessageAsync($"포트 {port.PortName} 닫는 중 오류 발생 (finally): {ex.Message}");
+                            LogMessage($"포트 {port.PortName} 닫는 중 오류 발생 (finally): {ex.Message}");
                         }
                     }
                 }
@@ -123,7 +130,7 @@ namespace SerialComm
 
         #region SerialCommunication
 
-        private async Task MonitorSerialPortsAsync()
+        private void MonitorSerialPorts()
         {
             while (true)
             {
@@ -132,25 +139,25 @@ namespace SerialComm
                     var availablePort = SerialPort.GetPortNames();
 
                     // 새로운 포트 열기
-                    await OpenPort(availablePort);
+                    OpenPort(availablePort);
 
                     // 비활성 포트 닫기
-                    await CloseInactivePort(availablePort);
+                    CloseInactivePort(availablePort);
 
                     // 포트 다시 연결
-                    await ReconnectPort(availablePort);
+                    ReconnectPort(availablePort);
 
-                    await Task.Delay(5000);
+                    Thread.Sleep(1);
                 }
                 catch (Exception ex)
                 {
-                    await LogMessageAsync("포트 모니터링 중 오류 발생: " + ex.Message);
-                    await Task.Delay(5000);
+                    LogMessage("포트 모니터링 중 오류 발생: " + ex.Message);
+                    Thread.Sleep(1);
                 }
             }
         }
 
-        private async Task OpenPort(string[] availablePorts)
+        private void OpenPort(string[] availablePorts)
         {
             foreach (var portName in availablePorts)
             {
@@ -161,19 +168,20 @@ namespace SerialComm
                         var serialPort = new SerialPort(portName, 115200);
                         serialPort.Open();
                         activePorts[portName] = serialPort;
-                        await LogMessageAsync($"{portName} 포트가 열렸습니다.");
+                        LogMessage($"{portName} 포트가 열렸습니다.");
 
-                        _ = ReceiveData(serialPort);
+                        // 데이터 수신을 위한 스레드 시작
+                        new Thread(() => ReceiveData(serialPort)).Start();
                     }
                     catch (Exception ex)
                     {
-                        await LogMessageAsync($"{portName} 포트 열기 중 오류 발생: {ex.Message}");
+                        LogMessage($"{portName} 포트 열기 중 오류 발생: {ex.Message}");
                     }
                 }
             }
         }
 
-        private async Task CloseInactivePort(string[] availablePorts)
+        private void CloseInactivePort(string[] availablePorts)
         {
             var activePortsKeys = activePorts.Keys.ToList();
             foreach (var portName in activePortsKeys)
@@ -181,14 +189,14 @@ namespace SerialComm
                 var port = activePorts[portName];
                 if (!availablePorts.Contains(portName) || !port.IsOpen)
                 {
-                    await LogMessageAsync($"{portName} 포트 연결이 끊겼습니다.");
+                    LogMessage($"{portName} 포트 연결이 끊겼습니다.");
                     try
                     {
                         port.Close();
                     }
                     catch (Exception ex)
                     {
-                        await LogMessageAsync($"{portName} 포트 닫는 중 오류 발생: {ex.Message}");
+                        LogMessage($"{portName} 포트 닫는 중 오류 발생: {ex.Message}");
                     }
                     finally
                     {
@@ -198,7 +206,7 @@ namespace SerialComm
             }
         }
 
-        private async Task ReconnectPort(string[] availablePorts)
+        private void ReconnectPort(string[] availablePorts)
         {
             foreach (var portName in availablePorts)
             {
@@ -209,13 +217,14 @@ namespace SerialComm
                         var serialPort = new SerialPort(portName, 115200);
                         serialPort.Open();
                         activePorts[portName] = serialPort;
-                        await LogMessageAsync($"{portName} 포트를 다시 연결했습니다.");
+                        LogMessage($"{portName} 포트를 다시 연결했습니다.");
 
-                        _ = ReceiveData(serialPort);
+                        // 데이터 수신을 위한 스레드 시작
+                        new Thread(() => ReceiveData(serialPort)).Start();
                     }
                     catch (Exception ex)
                     {
-                        await LogMessageAsync($"{portName} 포트를 다시 여는 중 오류 발생: {ex.Message}");
+                        LogMessage($"{portName} 포트를 다시 여는 중 오류 발생: {ex.Message}");
                     }
                 }
             }
@@ -225,7 +234,7 @@ namespace SerialComm
 
         #region Create Folder & SQLiteDB
 
-        private async Task ProcessQueueAsync(ConcurrentQueue<string> queue, string prefix)
+        private void ProcessQueue(ConcurrentQueue<string> queue, string prefix)
         {
             while (true)
             {
@@ -234,16 +243,16 @@ namespace SerialComm
                     try
                     {
                         string dbFilePath = _databaseManager.CreateFolder(prefix);
-                        await _databaseManager.AddDBTableAsync(dbFilePath);
-                        await _databaseManager.AddDataToDBAsync(dbFilePath, prefix, data);
+                        _databaseManager.AddDBTable(dbFilePath);
+                        _databaseManager.AddDataToDB(dbFilePath, prefix, data);
                     }
                     catch (Exception ex)
                     {
-                        await LogMessageAsync($"데이터 처리 중 오류 발생 ({prefix}): " + ex.Message);
+                        LogMessage($"데이터 처리 중 오류 발생 ({prefix}): " + ex.Message);
                     }
                 }
 
-                await Task.Delay(500);
+                Thread.Sleep(500);
             }
         }
 
@@ -251,7 +260,7 @@ namespace SerialComm
 
         #region Data Receive & EnQueue
 
-        private async Task ReceiveData(SerialPort port)
+        private void ReceiveData(SerialPort port)
         {
             StringBuilder buffer = new StringBuilder();
 
@@ -259,7 +268,7 @@ namespace SerialComm
             {
                 try
                 {
-                    string receivedData = await ReadData(port);
+                    string receivedData = ReadData(port);
                     buffer.Append(receivedData);
 
                     while (buffer.ToString().Contains("\n"))
@@ -277,16 +286,16 @@ namespace SerialComm
                 }
                 catch (Exception ex)
                 {
-                    await LogMessageAsync($"{port.PortName} 데이터 수신 중 오류 발생: " + ex.Message);
+                    LogMessage($"{port.PortName} 데이터 수신 중 오류 발생: " + ex.Message);
                 }
 
-                await Task.Delay(1);
+                Thread.Sleep(1);
             }
         }
 
-        private async Task<string> ReadData(SerialPort port)
+        private string ReadData(SerialPort port)
         {
-            return await Task.Run(() => port.ReadExisting());
+            return port.ReadExisting();
         }
 
         private void EnqueueSegment(string completeSegment)
@@ -332,3 +341,4 @@ namespace SerialComm
         #endregion
     }
 }
+

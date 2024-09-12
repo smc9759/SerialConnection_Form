@@ -8,8 +8,8 @@ namespace SerialForm2
 {
     public static class Variable
     {
-        public static string baseFolderPath = @"D:\DATASETS\RESULT";
-        public static string LogPath = @"D:\DATASETS\LOG"; // 경로 설정
+        public static string baseFolderPath = @"D:\DATASETS\RESULT_SYNC";
+        public static string LogPath = @"D:\DATASETS\LOG_SYNC"; // 경로 설정
 
         //public static string Model1 = "Model 1 Title"; // 차트 레전드 제목
         public static double Model1_Chart_Minimum_X = 0D;
