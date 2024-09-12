@@ -1,4 +1,4 @@
-# Async Serial Communication 
+# Sync Serial Communication 
 
 ## Language
 1. C#
