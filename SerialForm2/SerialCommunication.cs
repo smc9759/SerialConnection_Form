@@ -26,10 +26,6 @@ namespace SerialComm
         {
             _databaseManager = new DatabaseManager();
         }
-
-        // 로그 메시지를 비동기로 파일에 기록하는 메서드
-
-        // 로그 메시지를 비동기로 파일에 기록하는 메서드
         private async Task LogMessageAsync(string message)
         {
             try
@@ -140,12 +136,12 @@ namespace SerialComm
                     // 포트 다시 연결
                     await ReconnectPort(availablePort);
 
-                    await Task.Delay(5000);
+                    await Task.Delay(1);
                 }
                 catch (Exception ex)
                 {
                     await LogMessageAsync("포트 모니터링 중 오류 발생: " + ex.Message);
-                    await Task.Delay(5000);
+                    await Task.Delay(1);
                 }
             }
         }
@@ -332,3 +328,4 @@ namespace SerialComm
         #endregion
     }
 }
+
